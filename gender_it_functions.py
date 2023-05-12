@@ -112,7 +112,7 @@ def reading_wgnd(dictionary, path):
 
 
 
-def get_gender(df, name_column, country_column = False,  split_list = False, treshold = 0.95, path = 'gender_it/dictionaries/'):
+def get_gender(df, name_column, country_column = False,  split_list = False, threshold = 0.60, path = 'gender_it/dictionaries/'):
     df = df.reset_index(drop=True) ### in case of multiple index
     df = df.reset_index(names = 'name_id') ### we need the name_id to reconnect to final results
     original = df.copy()
@@ -153,7 +153,7 @@ def get_gender(df, name_column, country_column = False,  split_list = False, tre
         data = data.drop_duplicates(subset = ('clean_name','clean_country_column'))
         data = data.pivot(index=['clean_name','clean_country_column'], columns="gender", values="wgt").reset_index()
         found = data.merge(dff, on = ('clean_name','clean_country_column'))
-        found = found[(found[cols] > treshold).any(axis = 1)]
+        found = found[(found[cols] > threshold).any(axis = 1)]
         del data
         try:
             found  = found.sort_values('surname_position', ascending = True).drop_duplicates(subset = 'name_id')
