@@ -4,6 +4,7 @@ from utilities import get_adhoc_config
 from sqlalchemy import text
 import pandas as pd
 import pinyin
+import numpy as np
 
 def get_thresholds():
     gender_thresholds = {
@@ -30,9 +31,9 @@ def run_gender_attr(df, threshold):
 
 if __name__ == "__main__":
     # read_wgnd()
-    # data1 = reading_wgnd(1, os.getcwd())
-    # data2 = reading_wgnd(2, os.getcwd())
-    # data3 = reading_wgnd(3, os.getcwd())
+    data1 = reading_wgnd(1, os.getcwd())
+    data2 = reading_wgnd(2, os.getcwd())
+    data3 = reading_wgnd(3, os.getcwd())
     # print(pinyin.get('你好', format="strip", delimiter=" "))
     engine = get_adhoc_config(database="gender_attribution")
     with engine.connect() as conn:
@@ -47,6 +48,7 @@ if __name__ == "__main__":
     gender_thresholds = get_thresholds()
     final = pd.DataFrame()
     for key in gender_thresholds.keys():
+    # for key in [.97]:
         print("                ")
         print(key)
         print("                ")
@@ -59,6 +61,8 @@ if __name__ == "__main__":
         final = pd.concat([final,final_temp])
     print(final.shape)
     print(df.shape)
+    final['ernest_gender'] = np.where(final['male']==0, "F", np.where(final['male'] == 1, "M", ""))
+
     final.to_csv("20210930_results_varying_thresholds.csv")
     breakpoint()
 
