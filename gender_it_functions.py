@@ -60,7 +60,6 @@ def only_roman_chars(unistr):
            for uchr in unistr
            if uchr.isalpha()) # isalpha suggested by John Machin
 
-
     
 def multi_clean_name_function(name):
     name = str(name)
@@ -84,8 +83,8 @@ def clean_country_function(country_code):
     return country_code
 
 
-def reading_wgnd (dictionnary, path):
-    if dictionnary == 1:
+def reading_wgnd(dictionary, path):
+    if dictionary == 1:
         try: 
             print("reading the dictionnary.")
             data = pd.read_csv(path + 'd1.csv.gz', compression="gzip" ) ### find a way to change to local path        
@@ -93,7 +92,7 @@ def reading_wgnd (dictionnary, path):
             print("downloading the dictionnary.")
             s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750348').content
             data = pd.read_csv(StringIO(s.decode('utf-8')),sep = '\t')
-    if dictionnary == 2:
+    if dictionary == 2:
         try:    
             print("reading the dictionnary.")
             data = pd.concat(map(pd.read_csv, [path + 'd2_1.csv.gz',path + 'd2_2.csv.gz',path + 'd2_3.csv.gz']))
@@ -101,7 +100,7 @@ def reading_wgnd (dictionnary, path):
             print("downloading the dictionnary.")
             s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750350').content
             data = pd.read_csv(StringIO(s.decode('utf-8')),sep = ',')
-    if dictionnary == 3:
+    if dictionary == 3:
         try: 
             print("reading the dictionnary.")
             data = pd.read_csv(path + 'd3.csv.gz', compression="gzip" ) 
@@ -113,7 +112,7 @@ def reading_wgnd (dictionnary, path):
 
 
 
-def get_gender(df, name_column, country_column = False,  split = True, split_sep = ' ', treshold = 0.6, path = 'gender_it/dictionaries/'): 
+def get_gender(df, name_column, country_column = False,  split_list = False, treshold = 0.95, path = 'gender_it/dictionaries/'):
     df = df.reset_index(drop=True) ### in case of multiple index
     df = df.reset_index(names = 'name_id') ### we need the name_id to reconnect to final results
     original = df.copy()
@@ -124,10 +123,12 @@ def get_gender(df, name_column, country_column = False,  split = True, split_sep
     df['clean_name'] = df.apply(lambda x: multi_clean_name_function(x[name_column]), axis = 1 )
     del df[name_column]
     df = df.explode('clean_name')
-    if split == True:
-        df['clean_name'] = df['clean_name'].str.split(split_sep)
-        df = df.explode('clean_name')
-        df['surname_position'] = df.groupby('name_id').cumcount() + 1
+    if split_list:
+        for split in split_list:
+            # Breaks multi-word names such as Beth Anne into lists and then creates a row for each of the names
+            df['clean_name'] = df['clean_name'].str.split(split)
+            df = df.explode('clean_name')
+    df['surname_position'] = df.groupby('name_id').cumcount() + 1
     if country_column != False:
         dff = df[~(df[country_column].isnull())]
         dff [country_column] = dff [country_column].astype(str)
@@ -249,7 +250,7 @@ def get_gender(df, name_column, country_column = False,  split = True, split_sep
     res_final['gender'] = res_final['gender'].fillna('not found')
     h = res_final['gender'].value_counts()
     h = pd.DataFrame(h)
-    h ['Percentage'] = ((h['gender'] / len(original))*100 )
+    h['Percentage'] = ((h['count'] / len(original))*100 )
     try:
         del res_final['clean_name']
         del res_final ['clean_country_column']
