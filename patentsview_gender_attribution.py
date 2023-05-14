@@ -34,6 +34,7 @@ if __name__ == "__main__":
     data1 = reading_wgnd(1, os.getcwd())
     data2 = reading_wgnd(2, os.getcwd())
     data3 = reading_wgnd(3, os.getcwd())
+    breakpoint()
     # print(pinyin.get('你好', format="strip", delimiter=" "))
     engine = get_adhoc_config(database="gender_attribution")
     with engine.connect() as conn:
