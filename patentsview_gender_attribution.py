@@ -3,6 +3,7 @@ from gender_it_functions import reading_wgnd, get_gender
 from utilities import get_adhoc_config
 from sqlalchemy import text
 import pandas as pd
+import datetime
 import pinyin
 import numpy as np
 
@@ -29,41 +30,81 @@ def run_gender_attr(df, threshold):
     final = pd.merge(df, results_final, how="left", on=["name_first", 'country'])
     return final
 
-if __name__ == "__main__":
-    # read_wgnd()
-    data1 = reading_wgnd(1, os.getcwd())
-    data2 = reading_wgnd(2, os.getcwd())
-    data3 = reading_wgnd(3, os.getcwd())
-    breakpoint()
-    # print(pinyin.get('你好', format="strip", delimiter=" "))
-    engine = get_adhoc_config(database="gender_attribution")
+def run_test_against_ERNEST(engine):
     with engine.connect() as conn:
+        # granted_records = conn.execute(text(f"""select uuid, name_first, country, male from rawgender_ernest_attr_granted_20210930 as a inner join patent.rawlocation b on a.rawlocation_id=b.id;"""))
         granted_records = conn.execute(text(f"""select uuid, name_first, country, male from rawgender_ernest_attr_granted_20210930 as a inner join patent.rawlocation b on a.rawlocation_id=b.id;"""))
         dfg = pd.DataFrame(granted_records.fetchall())
         dfg.columns = granted_records.keys()
+        print(dfg.shape)
     with engine.connect() as conn:
+        # pre_records = conn.execute(text(f"""select id as uuid, name_first, country, male from rawgender_ernest_attr_pregrant_20210930;"""))
         pre_records = conn.execute(text(f"""select id as uuid, name_first, country, male from rawgender_ernest_attr_pregrant_20210930;"""))
         dfp = pd.DataFrame(pre_records.fetchall())
+        print(dfp.shape)
         dfp.columns = pre_records.keys()
     df = pd.concat([dfg, dfp])
+    return df
+
+def get_disambiguated_inventor_batch(engine, start_date, end_date):
+    with engine.connect() as conn:
+        # granted_records = conn.execute(text(f"""select uuid, name_first, country, male from rawgender_ernest_attr_granted_20210930 as a inner join patent.rawlocation b on a.rawlocation_id=b.id;"""))
+        granted_records = conn.execute(text(f"""
+select name_first, country
+from rawinventor a 
+	inner join rawlocation b on a.rawlocation_id=b.id
+where a.version_indicator >= '{start_date}' and  a.version_indicator < '{end_date}' 
+group by 1,2 
+        """))
+        dfg = pd.DataFrame(granted_records.fetchall())
+        dfg.columns = granted_records.keys()
+        print(dfg.shape)
+        print(dfg.head())
+    return dfg
+
+def update_unique_firstname_country_lookup():
+    print("HI ")
+
+def run_AIR_genderit(df):
     gender_thresholds = get_thresholds()
     final = pd.DataFrame()
     for key in gender_thresholds.keys():
-    # for key in [.97]:
-        print("                ")
-        print(key)
-        print("                ")
         if key != .97:
             temp_df = df[df['country'].isin(gender_thresholds[key])]
         else:
             temp_df = df[~df.country.isin(gender_thresholds[key])]
-        threshold = key
-        final_temp = run_gender_attr(temp_df, threshold)
-        final = pd.concat([final,final_temp])
+        if temp_df.empty:
+            print(f"No records for {gender_thresholds[key]} for this batch ...")
+            continue
+        else:
+            temp_df.head()
+            threshold = key
+            final_temp = run_gender_attr(temp_df, threshold)
+            final = pd.concat([final, final_temp])
     print(final.shape)
     print(df.shape)
-    final['ernest_gender'] = np.where(final['male']==0, "F", np.where(final['male'] == 1, "M", ""))
+    return final
+    # final['ernest_gender'] = np.where(final['male'] == 0, "F", np.where(final['male'] == 1, "M", ""))
+    # final.to_csv("20210930_results_varying_thresholds.csv")
 
-    final.to_csv("20210930_results_varying_thresholds.csv")
-    breakpoint()
+if __name__ == "__main__":
+    # data1 = reading_wgnd(1, os.getcwd())
+    # data2 = reading_wgnd(2, os.getcwd())
+    # data3 = reading_wgnd(3, os.getcwd())
+    # print(pinyin.get('你好', format="strip", delimiter=" "))
+    engine = get_adhoc_config(database="patent")
+    gen_att_engine = get_adhoc_config(database="gender_attribution")
+    d = datetime.date(1977, 5, 15)
+    while d < datetime.date(2023, 4, 10):
+        start_date = d
+        end_date = d + datetime.timedelta(days=500)
+        df = get_disambiguated_inventor_batch(engine, start_date, end_date)
+        final = run_AIR_genderit(df)
+        print(f"FINISHED PROCESSING PATENT.RAWINVENTORS {start_date}:{end_date}")
+        final.to_sql('patent_inventor_genderit_attribution', con=gen_att_engine, if_exists='append', chunksize=1000)
+        d =  end_date
+
+
+
+
 

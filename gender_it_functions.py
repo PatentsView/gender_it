@@ -216,7 +216,6 @@ def get_gender(df, name_column, country_column = False, split_list = False, thre
         found = pd.concat([res, found])
     except:
         found = res.copy()
-    breakpoint()
     not_found =  dfn [~(dfn['name_id'].isin(list(found['name_id'])))]
     not_found = not_found.drop_duplicates(subset = 'name_id')
     del res
@@ -225,24 +224,24 @@ def get_gender(df, name_column, country_column = False, split_list = False, thre
     ######################################################################################### MERGING RESULTS
     ########################################################################################################################
     cols = []
-    # try :
-    #     not_found ['F'] = 'not found'
-    #     found ['F']= found['F'].fillna(0)
-    #     cols.append('F')
-    # except:
-    #     pass
-    # try :
-    #     not_found ['M'] =  'not found'
-    #     found ['M']= found['M'].fillna(0)
-    #     cols.append('M')
-    # except:
-    #     pass
-    # try:
-    #     not_found ['?'] =  'not found'
-    #     found ['?']= found['?'].fillna(0)
-    #     cols.append('?')
-    # except:
-    #     pass
+    try :
+        not_found ['F'] = 'not found'
+        found ['F']= found['F'].fillna(0)
+        cols.append('F')
+    except:
+        pass
+    try :
+        not_found ['M'] =  'not found'
+        found ['M']= found['M'].fillna(0)
+        cols.append('M')
+    except:
+        pass
+    try:
+        not_found ['?'] =  'not found'
+        found ['?']= found['?'].fillna(0)
+        cols.append('?')
+    except:
+        pass
     found['gender'] = found[cols].idxmax(axis=1)
     res_final = pd.concat([not_found, found])
     res_final = res_final.merge(original, on = 'name_id')
