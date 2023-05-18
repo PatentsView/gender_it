@@ -260,7 +260,7 @@ def get_gender(df, name_column, country_column = False, split_list = False, thre
         del res_final['surname_position']
     except:
         pass
-    print ('Results distirbution is as follow:','\n',h)
+    # print ('Results distirbution is as follow:','\n',h)
     cols_2 = list(original.columns) +  ['level', 'gender'] + cols
     res_final = res_final [cols_2] 
     return res_final

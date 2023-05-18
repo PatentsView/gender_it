@@ -81,8 +81,8 @@ def run_AIR_genderit(df):
             threshold = key
             final_temp = run_gender_attr(temp_df, threshold)
             final = pd.concat([final, final_temp])
-    print(final.shape)
-    print(df.shape)
+    # print(final.shape)
+    # print(df.shape)
     return final
     # final['ernest_gender'] = np.where(final['male'] == 0, "F", np.where(final['male'] == 1, "M", ""))
     # final.to_csv("20210930_results_varying_thresholds.csv")
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     # print(pinyin.get('你好', format="strip", delimiter=" "))
     engine = get_adhoc_config(database="patent")
     gen_att_engine = get_adhoc_config(database="gender_attribution")
-    d = datetime.date(1977, 5, 15)
+    d = datetime.date(1986, 12, 14)
     while d < datetime.date(2023, 4, 10):
         start_date = d
         end_date = d + datetime.timedelta(days=500)
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         final.to_sql('patent_inventor_genderit_attribution', con=gen_att_engine, if_exists='append', chunksize=1000)
         d =  end_date
 
-
+# FINISHED PROCESSING PATENT.RAWINVENTORS 1985-08-01:1986-12-14
 
 
 
