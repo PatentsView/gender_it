@@ -49,17 +49,19 @@ def run_test_against_ERNEST(engine):
 def get_disambiguated_inventor_batch(engine, start_date, end_date):
     with engine.connect() as conn:
         # granted_records = conn.execute(text(f"""select uuid, name_first, country, male from rawgender_ernest_attr_granted_20210930 as a inner join patent.rawlocation b on a.rawlocation_id=b.id;"""))
-        granted_records = conn.execute(text(f"""
-select name_first, country
+        q = f"""
+select uuid, name_first, country, a.version_indicator
 from rawinventor a 
 	inner join rawlocation b on a.rawlocation_id=b.id
 where a.version_indicator >= '{start_date}' and  a.version_indicator < '{end_date}' 
-group by 1,2 
-        """))
+        """
+        print(q)
+        granted_records = conn.execute(text(q))
         dfg = pd.DataFrame(granted_records.fetchall())
         dfg.columns = granted_records.keys()
         print(dfg.shape)
-        print(dfg.head())
+        print(" ")
+        # print(dfg.head())
     return dfg
 
 def update_unique_firstname_country_lookup():
@@ -70,11 +72,17 @@ def run_AIR_genderit(df):
     final = pd.DataFrame()
     for key in gender_thresholds.keys():
         if key != .97:
+            print(" ")
+            print(f" Processing {gender_thresholds[key]} ...")
+            print(" ")
             temp_df = df[df['country'].isin(gender_thresholds[key])]
         else:
+            print(" ")
+            print(f" Processing EVERYTHING BUT {gender_thresholds[key]} ...")
+            print(" ")
             temp_df = df[~df.country.isin(gender_thresholds[key])]
         if temp_df.empty:
-            print(f"No records for {gender_thresholds[key]} for this batch ...")
+            print(f"\t\t No records for {gender_thresholds[key]} for this batch ...")
             continue
         else:
             temp_df.head()
@@ -94,10 +102,10 @@ if __name__ == "__main__":
     # print(pinyin.get('你好', format="strip", delimiter=" "))
     engine = get_adhoc_config(database="patent")
     gen_att_engine = get_adhoc_config(database="gender_attribution")
-    d = datetime.date(1986, 12, 14)
+    d = datetime.date(1980, 1, 6)
     while d < datetime.date(2023, 4, 10):
         start_date = d
-        end_date = d + datetime.timedelta(days=500)
+        end_date = d + datetime.timedelta(days=1456)
         df = get_disambiguated_inventor_batch(engine, start_date, end_date)
         final = run_AIR_genderit(df)
         print(f"FINISHED PROCESSING PATENT.RAWINVENTORS {start_date}:{end_date}")

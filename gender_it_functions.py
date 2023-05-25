@@ -12,29 +12,29 @@ def read_wgnd(path = False, All = True):
     if  path == False and All == True :
         s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750348').content
         d1 = pd.read_csv(StringIO(s.decode('utf-8')),sep = '\t')
-        print('saving first dictionnary.')
+        # print('saving first dictionnary.')
         d1.to_csv("d1.csv.gz", index=False, compression="gzip") 
         s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750350').content
         d2 = pd.read_csv(StringIO(s.decode('utf-8')),sep = ',')
         d2.to_csv( "d2.csv.gz", index=False, compression="gzip") 
-        print('saving second dictionnary.')
+        # print('saving second dictionnary.')
         s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750351').content
         d3 = pd.read_csv(StringIO(s.decode('utf-8')),sep = '\t')
         d3.to_csv("d3.csv.gz", index=False, compression="gzip")
-        print('saving third dictionnary.')
+        # print('saving third dictionnary.')
     elif path != False and All == True:
         s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750348').content
         d1 = pd.read_csv(StringIO(s.decode('utf-8')),sep = '\t')
-        print('saving first dictionnary.')
+        # print('saving first dictionnary.')
         d1.to_csv(path + "d1.csv.gz", index=False, compression="gzip") 
         s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750350').content
         d2 = pd.read_csv(StringIO(s.decode('utf-8')),sep = ',')
         d2.to_csv(path + "d2.csv.gz", index=False, compression="gzip") 
-        print('saving second dictionnary.')
+        # print('saving second dictionnary.')
         s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750351').content
         d3 = pd.read_csv(StringIO(s.decode('utf-8')),sep = '\t')
         d3.to_csv(path + "d3.csv.gz", index=False, compression="gzip")
-        print('saving third dictionnary.')
+        # print('saving third dictionnary.')
     elif All != True:
         s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750351').content
         d3 = pd.read_csv(StringIO(s.decode('utf-8')),sep = '\t')
@@ -86,26 +86,26 @@ def clean_country_function(country_code):
 def reading_wgnd(dictionary, path):
     if dictionary == 1:
         try: 
-            print("reading the dictionnary.")
+            # print("reading the dictionnary.")
             data = pd.read_csv(path + 'd1.csv.gz', compression="gzip" ) ### find a way to change to local path        
         except:
-            print("downloading the dictionnary.")
+            # print("downloading the dictionnary.")
             s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750348').content
             data = pd.read_csv(StringIO(s.decode('utf-8')),sep = '\t')
     if dictionary == 2:
         try:    
-            print("reading the dictionnary.")
+            # print("reading the dictionnary.")
             data = pd.concat(map(pd.read_csv, [path + 'd2_1.csv.gz',path + 'd2_2.csv.gz',path + 'd2_3.csv.gz']))
         except:
-            print("downloading the dictionnary.")
+            # print("downloading the dictionnary.")
             s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750350').content
             data = pd.read_csv(StringIO(s.decode('utf-8')),sep = ',')
     if dictionary == 3:
         try: 
-            print("reading the dictionnary.")
+            # print("reading the dictionnary.")
             data = pd.read_csv(path + 'd3.csv.gz', compression="gzip" ) 
         except:
-            print("downloading the dictionnary.")
+            # print("downloading the dictionnary.")
             s = requests.get('https://dataverse.harvard.edu/api/access/datafile/4750351').content
             data = pd.read_csv(StringIO(s.decode('utf-8')),sep = '\t')
     return data
@@ -126,7 +126,7 @@ def get_gender(df, name_column, country_column = False, split_list = False, thre
     if split_list:
         for split in split_list:
             # Breaks multi-word names such as Beth Anne into lists and then creates a row for each of the names
-            df['clean_name'] = df['clean_name'].str.split(split)
+            df['clean_name'] = df['clean_name'].astype(str).str.split(split)
             df = df.explode('clean_name')
     df['surname_position'] = df.groupby('name_id').cumcount() + 1
     if country_column != False:
@@ -145,10 +145,11 @@ def get_gender(df, name_column, country_column = False, split_list = False, thre
     ############################################################################ FIRST TRY
     #######################################################################################################################
     if country_column != False:
-        print('Step 1 - reading the name-country-gender dictionary')
+        # print('Step 1 - reading the name-country-gender dictionary')
         data = reading_wgnd (1, path)
         data = data.rename(columns = {'name':'clean_name','code':'clean_country_column'})
         data = data [data['clean_name'].isin(list(dff['clean_name']))]
+        # print(data)
         data = data [data['clean_country_column'].isin(list(dff['clean_country_column']))]
         cols = unique(data['gender'].tolist())
         data = data.drop_duplicates(subset = ('clean_name','clean_country_column', 'gender'))
@@ -168,10 +169,11 @@ def get_gender(df, name_column, country_column = False, split_list = False, thre
         #######################################################################################################################
         ################################################################################# Second Try
         #######################################################################################################################
-        print('Step 2 - reading the name-language-gender dictionary')
+        # print('Step 2 - reading the name-language-gender dictionary')
         data = reading_wgnd (2, path)
         data = data.rename(columns = {'name':'clean_name','code':'clean_country_column'})
         data = data [data['clean_name'].isin(list(dff['clean_name']))]
+        # print(data)
         data = data [data['clean_country_column'].isin(list(dff['clean_country_column']))]
         data = data.drop_duplicates(subset = ('clean_name','clean_country_column', 'gender'))
         res = data.merge(dff, on = ('clean_name','clean_country_column'))
@@ -198,10 +200,11 @@ def get_gender(df, name_column, country_column = False, split_list = False, thre
         dfn = dfn [~(dfn['name_id'].isin(list(found['name_id'])))]
     except:
         pass
-    print('Step 3 - reading the name-gender dictionary.')
+    # print('Step 3 - reading the name-gender dictionary.')
     data = reading_wgnd (3, path)
     data = data.rename(columns = {'name':'clean_name'})
     data = data [data['clean_name'].isin(list(dfn['clean_name']))]
+    # print(data)
     ##### Filter on relevant data
     res = data.merge(dfn, on = 'clean_name')
     del data
