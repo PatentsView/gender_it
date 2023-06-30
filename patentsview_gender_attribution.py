@@ -46,15 +46,22 @@ def run_test_against_ERNEST(engine):
     df = pd.concat([dfg, dfp])
     return df
 
-def get_disambiguated_inventor_batch(engine, start_date, end_date):
+def get_disambiguated_inventor_batch(engine, start_date, end_date, db='patent'):
     with engine.connect() as conn:
         # granted_records = conn.execute(text(f"""select uuid, name_first, country, male from rawgender_ernest_attr_granted_20210930 as a inner join patent.rawlocation b on a.rawlocation_id=b.id;"""))
-        q = f"""
-select uuid, name_first, country, a.version_indicator
-from rawinventor a 
-	inner join rawlocation b on a.rawlocation_id=b.id
-where a.version_indicator >= '{start_date}' and  a.version_indicator < '{end_date}' 
-        """
+        if db == 'patent':
+            q = f"""
+    select uuid, name_first, country, a.version_indicator
+    from rawinventor a 
+        inner join rawlocation b on a.rawlocation_id=b.id
+    where a.version_indicator >= '{start_date}' and  a.version_indicator < '{end_date}' 
+            """
+        else:
+            q = f"""
+            select id, name_first, country, a.version_indicator
+            from rawinventor a 
+            where a.version_indicator >= '{start_date}' and  a.version_indicator < '{end_date}' 
+                    """
         print(q)
         granted_records = conn.execute(text(q))
         dfg = pd.DataFrame(granted_records.fetchall())
@@ -100,16 +107,21 @@ if __name__ == "__main__":
     # data2 = reading_wgnd(2, os.getcwd())
     # data3 = reading_wgnd(3, os.getcwd())
     # print(pinyin.get('你好', format="strip", delimiter=" "))
-    engine = get_adhoc_config(database="patent")
+    # engine = get_adhoc_config(database="patent")
+    engine = get_adhoc_config(database="pregrant_publications")
     gen_att_engine = get_adhoc_config(database="gender_attribution")
-    d = datetime.date(1980, 1, 6)
+    d = datetime.date(2019, 7, 4)
     while d < datetime.date(2023, 4, 10):
         start_date = d
-        end_date = d + datetime.timedelta(days=1456)
-        df = get_disambiguated_inventor_batch(engine, start_date, end_date)
+        end_date = d + datetime.timedelta(days=175)
+        df = get_disambiguated_inventor_batch(engine, start_date, end_date, db='pgpubs')
         final = run_AIR_genderit(df)
-        print(f"FINISHED PROCESSING PATENT.RAWINVENTORS {start_date}:{end_date}")
-        final.to_sql('patent_inventor_genderit_attribution', con=gen_att_engine, if_exists='append', chunksize=1000)
+        try:
+            final.to_sql('pgpubs_inventor_genderit_attribution', con=gen_att_engine, if_exists='append', chunksize=1000)
+        except:
+            breakpoint()
+        print(f"FINISHED PROCESSING PATENT.RAWINVENTORS {start_date}: {end_date}")
+        # final.to_sql('patent_inventor_genderit_attribution', con=gen_att_engine, if_exists='append', chunksize=1000)
         d =  end_date
 
 # FINISHED PROCESSING PATENT.RAWINVENTORS 1985-08-01:1986-12-14
