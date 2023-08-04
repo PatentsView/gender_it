@@ -1,6 +1,6 @@
 import os
-from gender_it_functions import reading_wgnd, get_gender
-from utilities import get_adhoc_config
+from gender_it.gender_it_functions import reading_wgnd, get_gender
+from gender_it.utilities import get_adhoc_config
 from sqlalchemy import text
 import pandas as pd
 import datetime
