@@ -54,7 +54,7 @@ def get_disambiguated_inventor_batch(engine, start_date, end_date, type):
     select uuid, name_first, country, a.version_indicator
     from rawinventor a 
         inner join rawlocation b on a.rawlocation_id=b.id
---     where a.version_indicator >= '{start_date}' and  a.version_indicator <= '{end_date}' 
+    where a.version_indicator >= '{start_date}' and  a.version_indicator <= '{end_date}' 
             """
         else:
             q = f"""
