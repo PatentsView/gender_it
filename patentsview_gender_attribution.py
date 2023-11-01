@@ -46,21 +46,22 @@ def run_test_against_ERNEST(engine):
     df = pd.concat([dfg, dfp])
     return df
 
-def get_disambiguated_inventor_batch(engine, start_date, end_date, db='patent'):
+def get_disambiguated_inventor_batch(engine, start_date, end_date, type):
     with engine.connect() as conn:
         # granted_records = conn.execute(text(f"""select uuid, name_first, country, male from rawgender_ernest_attr_granted_20210930 as a inner join patent.rawlocation b on a.rawlocation_id=b.id;"""))
-        if db == 'patent':
+        if type == 'granted_patent':
             q = f"""
     select uuid, name_first, country, a.version_indicator
     from rawinventor a 
         inner join rawlocation b on a.rawlocation_id=b.id
-    where a.version_indicator >= '{start_date}' and  a.version_indicator < '{end_date}' 
+--     where a.version_indicator >= '{start_date}' and  a.version_indicator <= '{end_date}' 
             """
         else:
             q = f"""
             select id, name_first, country, a.version_indicator
             from rawinventor a 
-            where a.version_indicator >= '{start_date}' and  a.version_indicator < '{end_date}' 
+             where a.version_indicator >= '{start_date}' and  a.version_indicator <= '{end_date}' 
+--     where a.version_indicator >= '2023-06-29' and  a.version_indicator <= '2023-06-29'                     
                     """
         print(q)
         granted_records = conn.execute(text(q))
@@ -96,11 +97,8 @@ def run_AIR_genderit(df):
             threshold = key
             final_temp = run_gender_attr(temp_df, threshold)
             final = pd.concat([final, final_temp])
-    # print(final.shape)
-    # print(df.shape)
     return final
     # final['ernest_gender'] = np.where(final['male'] == 0, "F", np.where(final['male'] == 1, "M", ""))
-    # final.to_csv("20210930_results_varying_thresholds.csv")
 
 if __name__ == "__main__":
     # data1 = reading_wgnd(1, os.getcwd())
@@ -114,7 +112,8 @@ if __name__ == "__main__":
     while d < datetime.date(2023, 4, 10):
         start_date = d
         end_date = d + datetime.timedelta(days=175)
-        df = get_disambiguated_inventor_batch(engine, start_date, end_date, db='pgpubs')
+        df = get_disambiguated_inventor_batch(engine, start_date, end_date, type)
+        breakpoint()
         final = run_AIR_genderit(df)
         try:
             final.to_sql('pgpubs_inventor_genderit_attribution', con=gen_att_engine, if_exists='append', chunksize=1000)
