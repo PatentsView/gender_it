@@ -330,18 +330,18 @@ def get_disambiguated_inventor_batch(execution_type):
     print("Fetching disambiguated inventor data...")
     if execution_type == 'granted_patent':
         q = f"""
-        SELECT b.uuid, b.name_first, c.country, b.version_indicator
-        FROM PatentsView_20250930.inventor a
-        INNER JOIN patent.rawinventor b ON a.persistent_inventor_id = b.inventor_id
-        INNER JOIN patent.rawlocation c ON b.rawlocation_id = c.id
-        WHERE a.gender_code IS NULL
+        SELECT a.uuid, a.name_first, c.country, a.version_indicator
+        FROM patent.rawinventor a
+        LEFT JOIN gender_attribution.inventor_gender_20251231 b on(a.inventor_id = b.inventor_id)
+        LEFT JOIN patent.rawlocation c ON a.rawlocation_id = c.id
+        WHERE b.inventor_id IS NULL
         """
     else:
         q = f"""
-        SELECT b.id, b.name_first, b.country, b.version_indicator
-        FROM PatentsView_20250930.inventor a
-        INNER JOIN pregrant_publications.rawinventor b ON a.persistent_inventor_id = b.inventor_id
-        WHERE a.gender_code IS NULL
+        SELECT a.id, a.name_first, a.country, a.version_indicator
+        FROM pregrant_publications.rawinventor a
+        LEFT JOIN gender_attribution.inventor_gender_20251231 b on(a.inventor_id = b.inventor_id)
+        WHERE b.inventor_id IS NULL;
         """
     print(q)
     with engine.connect() as conn:
@@ -362,10 +362,9 @@ def get_disambiguated_inventor_batch(execution_type):
     final.to_sql(f'{db}_rawinventor_genderit_attribution', con=gen_att_engine, if_exists='append', chunksize=5000)
     print("Results written to database successfully.")
 
-
-if __name__ == "__main__":
-    main()
-
 def main():
     get_disambiguated_inventor_batch("granted_patent")
     get_disambiguated_inventor_batch("pgpubs")
+
+if __name__ == "__main__":
+    main()
